@@ -1,26 +1,55 @@
-import { TableClient, AzureNamedKeyCredential } from "@azure/data-tables";
+import { TableClient } from "@azure/data-tables";
 
-const connectionString = process.env.AZURE_STORAGE_CONNECTION_STRING;
+let eventsTable: TableClient | null = null;
+let participantsTable: TableClient | null = null;
+let expensesTable: TableClient | null = null;
 
-if (!connectionString) {
-  throw new Error("AZURE_STORAGE_CONNECTION_STRING is not set");
+function getConnectionString(): string {
+  const connectionString = process.env.AZURE_STORAGE_CONNECTION_STRING;
+  if (!connectionString) {
+    throw new Error("AZURE_STORAGE_CONNECTION_STRING is not set");
+  }
+  return connectionString;
 }
 
-// Initialize table clients
-const eventsTable = new TableClient(connectionString, "events");
-const participantsTable = new TableClient(connectionString, "participants");
-const expensesTable = new TableClient(connectionString, "expenses");
+function initializeClients() {
+  if (!eventsTable) {
+    const connectionString = getConnectionString();
+    eventsTable = new TableClient(connectionString, "events");
+    participantsTable = new TableClient(connectionString, "participants");
+    expensesTable = new TableClient(connectionString, "expenses");
+  }
+}
+
+export function getEventsTable(): TableClient {
+  initializeClients();
+  return eventsTable!;
+}
+
+export function getParticipantsTable(): TableClient {
+  initializeClients();
+  return participantsTable!;
+}
+
+export function getExpensesTable(): TableClient {
+  initializeClients();
+  return expensesTable!;
+}
 
 // Ensure tables exist on startup
 export async function initializeTables() {
   try {
-    await eventsTable.createTable().catch(() => {
+    const events = getEventsTable();
+    const participants = getParticipantsTable();
+    const expenses = getExpensesTable();
+
+    await events.createTable().catch(() => {
       // Table may already exist
     });
-    await participantsTable.createTable().catch(() => {
+    await participants.createTable().catch(() => {
       // Table may already exist
     });
-    await expensesTable.createTable().catch(() => {
+    await expenses.createTable().catch(() => {
       // Table may already exist
     });
   } catch (error) {
@@ -28,5 +57,3 @@ export async function initializeTables() {
     throw error;
   }
 }
-
-export { eventsTable, participantsTable, expensesTable };
