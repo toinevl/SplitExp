@@ -30,9 +30,10 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json(successResponse(event), { status: 201 });
   } catch (error) {
-    console.error("Error creating event:", error);
+    const errorMsg = error instanceof Error ? error.message : String(error);
+    console.error("Error creating event:", errorMsg, error);
     return NextResponse.json(
-      errorResponse("Failed to create event"),
+      errorResponse(`Failed to create event: ${errorMsg}`),
       { status: 500 }
     );
   }
