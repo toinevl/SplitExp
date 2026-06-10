@@ -1,23 +1,41 @@
-import { TableClient } from "@azure/data-tables";
+import { TableClient, AzureNamedKeyCredential } from "@azure/data-tables";
 
 let eventsTable: TableClient | null = null;
 let participantsTable: TableClient | null = null;
 let expensesTable: TableClient | null = null;
 
-function getConnectionString(): string {
-  const connectionString = process.env.AZURE_STORAGE_CONNECTION_STRING;
-  if (!connectionString) {
+function getTableClients() {
+  const connStr = process.env.AZURE_STORAGE_CONNECTION_STRING;
+  if (!connStr) {
     throw new Error("AZURE_STORAGE_CONNECTION_STRING is not set");
   }
-  return connectionString;
+
+  // Parse connection string to extract account name and key
+  const parts = connStr.split(";").reduce((acc: Record<string, string>, part) => {
+    const [key, value] = part.split("=");
+    if (key && value) acc[key] = value;
+    return acc;
+  }, {});
+
+  const accountName = parts["AccountName"];
+  const accountKey = parts["AccountKey"];
+
+  if (!accountName || !accountKey) {
+    throw new Error("Invalid connection string: missing AccountName or AccountKey");
+  }
+
+  const url = `https://${accountName}.table.core.windows.net`;
+  const credential = new AzureNamedKeyCredential(accountName, accountKey);
+
+  return { url, credential };
 }
 
 function initializeClients() {
   if (!eventsTable) {
-    const connectionString = getConnectionString();
-    eventsTable = new TableClient(connectionString, "events");
-    participantsTable = new TableClient(connectionString, "participants");
-    expensesTable = new TableClient(connectionString, "expenses");
+    const { url, credential } = getTableClients();
+    eventsTable = new TableClient(url, "events", credential);
+    participantsTable = new TableClient(url, "participants", credential);
+    expensesTable = new TableClient(url, "expenses", credential);
   }
 }
 
