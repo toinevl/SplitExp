@@ -19,12 +19,17 @@ export default function EventDashboard() {
   useEffect(() => {
     if (!slug) return;
 
+    setLoading(true);
+    setError("");
+    setEvent(null); // Clear previous event data
+
     const fetchEvent = async () => {
       try {
         const data = await getEvent(slug);
         setEvent(data);
       } catch (err) {
         setError("Event not found");
+        setEvent(null);
       } finally {
         setLoading(false);
       }
